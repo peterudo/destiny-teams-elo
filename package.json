@@ -1,0 +1,29 @@
+{
+  "name": "destiny-teams-elo",
+  "version": "1.0.0",
+  "description": "Calculate average team Elo across different game modes",
+  "main": "main.js",
+  "dependencies": {
+    "bluebird": "^3.3.4",
+    "ramda": "^0.19.1",
+    "request-prom": "^2.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rudolfrck/destiny-teams-elo.git"
+  },
+  "keywords": [
+    "destiny",
+    "elo"
+  ],
+  "author": "Peter Rudolfsen <peter@silencethefoe.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rudolfrck/destiny-teams-elo/issues"
+  },
+  "homepage": "https://github.com/rudolfrck/destiny-teams-elo#readme"
+}
