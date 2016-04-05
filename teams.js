@@ -1,8 +1,11 @@
-var request = require('request-prom');
-var Promise = require('bluebird');
-var R = require('ramda');
+const request = require('request-prom');
+const Promise = require('bluebird');
+const R = require('ramda');
+const fs = require('fs');
 
 module.exports.process = processTeams;
+module.exports.getTeamsFromCsv = getTeamsFromCsv;
+module.exports.getTeamsFromCsvFile = getTeamsFromCsvFile;
 
 const MODES = {
     skirmish: 9,
@@ -42,7 +45,11 @@ function getCompleteTeamData(modes, team) {
 }
 
 function getAndAddPlayerToTeam(modes, teamData, playerName) {
-    return getPlayerId(playerName).then(curried.addPlayerToTeam(modes, teamData));
+    return getPlayerId(playerName)
+        .then(curried.addPlayerToTeam(modes, teamData))
+        .catch((error) => {
+            console.error('Error', error);
+        });
 }
 
 function addPlayerToTeam(modes, teamData, playerId) {
@@ -54,8 +61,11 @@ function addPlayerToTeam(modes, teamData, playerId) {
 function addPlayerToTeamForMode(teamData, playerId, mode) {
     return getPlayerModeDataForPlayer(playerId, mode)
         .then((playerData) => {
-            teamData.gamesPlayed.push(playerData.gamesPlayed);
-            teamData.elo.push(playerData.elo);
+            // No player data, the player has never played the mode
+            if (playerData) {
+                teamData.gamesPlayed.push(playerData.gamesPlayed || 0);
+                teamData.elo.push(playerData.elo);
+            }
 
             return teamData;
         });
@@ -70,11 +80,11 @@ function calculateFinalTeamData(finalTeamData) {
     finalTeamData.avgGamesPlayed = Math.round(finalTeamData.totalGamesPlayed / finalTeamData.gamesPlayed.length);
     finalTeamData.avgElo = Math.round(finalTeamData.totalElo / finalTeamData.elo.length);
 
-    // console.log('Team', finalTeamData);
-    // console.log('Players', finalTeamData.players);
-    // console.log('Avg elo', finalTeamData.avgElo);
-    // console.log('Avggames played', teamData.avgGamesPlayed);
-    // console.log('-------------');
+    console.log('Team', finalTeamData.name);
+    console.log('Players', finalTeamData.players);
+    console.log('Avg elo', finalTeamData.avgElo);
+    console.log('Avggames played', finalTeamData.avgGamesPlayed);
+    console.log('-------------');
 
     return finalTeamData;
 }
@@ -86,7 +96,13 @@ function getPlayerId(name) {
         json: true
     };
 
-    return request(options).then((response) => response.body.Response[0].membershipId);
+    return request(options).then((response) => {
+        if (!response.body.Response.length) {
+            throw new Error('Failed to find player ' + name);
+        }
+
+        return response.body.Response[0].membershipId;
+    });
 }
 
 function getPlayerModeDataForPlayer(playerId, mode) {
@@ -99,4 +115,46 @@ function getPlayerModeDataForPlayer(playerId, mode) {
     return request(options).then((response) => {
         return response.body.find((elo) => elo.mode === mode);
     });
+}
+
+function getTeamsFromCsv(csv) {
+    var lines = csv.split(/\"\n/);
+
+    var keys = [false, 'name', 'contact', 'player1', 'player2', 'player3', 'subs', 'twitch'];
+
+    var data = [];
+
+    lines.forEach((line, i) => {
+        if (i === 0) {
+            return;
+        }
+
+        i = i - 1;
+
+        line = line.substr(1, line.length);
+        var values = line.split('","');
+
+        data[i] = {};
+        keys.forEach((key, j) => {
+            if (key) {
+                data[i][key] = values[j].replace('"', '');
+            }
+        });
+
+        data[i].players = [
+            data[i].player1,
+            data[i].player2,
+            data[i].player3
+        ];
+
+        delete data[i].player1;
+        delete data[i].player2;
+        delete data[i].player3;
+    });
+
+    return data;
+}
+
+function getTeamsFromCsvFile(file) {
+    return getTeamsFromCsv(fs.readFileSync(file).toString());
 }
