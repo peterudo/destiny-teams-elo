@@ -6129,5 +6129,27 @@ button.close {
   to {
     -webkit-transform: rotate(1turn); } }
 
+body {
+  background: #F2F2F2; }
+
 .stream input {
   display: block; }
+
+.top.well {
+  background: #2A333E;
+  border-radius: 0;
+  padding: 10px 10px 5px;
+  margin: 0; }
+  .top.well .row {
+    margin-top: 0; }
+
+.Select {
+  width: 200px;
+  display: inline-block; }
+
+.twitch-chat {
+  width: 310px;
+  float: right; }
+
+.twitch-iframe {
+  float: left; }

@@ -6,29 +6,60 @@ const metrics = {
 };
 
 export class TwitchIframe extends React.Component {
+    componentDidMount() {
+        const iframe = this.refs.iframe;
+        const wrapper = this.refs.wrapper;
+
+        const metrics = getMetrics();
+
+        iframe.width = metrics.width;
+        iframe.height = metrics.height;
+        wrapper.style.width = metrics.width + 'px';
+        wrapper.style.height = metrics.height + 'px';
+    }
+
     render() {
         return (
-            <iframe
-                src={`https://player.twitch.tv/?channel=${this.props.username}`}
-                frameBorder="0"
-                scrolling="no"
-                height={metrics.height}
-                width={metrics.width}>
-            </iframe>
+            <div className="twitch-iframe" ref="wrapper">
+                <iframe
+                    ref="iframe"
+                    src={`https://player.twitch.tv/?channel=${this.props.username}`}
+                    frameBorder="0"
+                    scrolling="no"
+                    height={metrics.height}
+                    width={metrics.width}>
+                </iframe>
+            </div>
         );
     }
 }
 
 export class TwitchChatRoom extends React.Component {
+    componentDidMount() {
+        const iframe = this.refs.iframe;
+        const wrapper = this.refs.wrapper;
+
+        const metrics = getMetrics();
+        const width = Math.min(window.innerWidth - metrics.width, 310);
+
+        iframe.width = width;
+        iframe.height = metrics.height;
+        wrapper.style.width = width + 'px';
+        wrapper.style.height = metrics.height + 'px';
+    }
+
     render() {
         return (
-            <iframe
-                src={`https://www.twitch.tv/${this.props.username}/chat?popout=`}
-                frameBorder="0"
-                scrolling="no"
-                height={metrics.height}
-                width="350">
-            </iframe>
+            <div className="twitch-chat" ref="wrapper">
+                <iframe
+                    ref="iframe"
+                    src={`https://www.twitch.tv/${this.props.username}/chat?popout=`}
+                    frameBorder="0"
+                    scrolling="no"
+                    height={metrics.height}
+                    width="310">
+                </iframe>
+            </div>
         );
     }
 }
@@ -59,6 +90,13 @@ class Streams extends React.Component {
             </div>
         );
     }
+}
+
+function getMetrics() {
+    const height = (window.innerHeight - 58) / 2;
+    const width = height * 1.64021164021164;
+
+    return {width, height};
 }
 
 export default Streams;

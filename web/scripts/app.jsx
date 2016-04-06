@@ -36,24 +36,27 @@ class App extends React.Component {
 
         return (
             <div>
-                <div className="well">
-                    <TwitchStreamPicker
-                        teams={this.props.teams}
-                        stream={this.props.streams[0]}
-                        setStream={this.props.setStream1}
-                        placeholder="Select stream for team #1"/>
-                </div>
-                {stream1}
+                <div className="well top">
+                    <div className="row">
+                        <div className="col-sm-6">
+                            <TwitchStreamPicker
+                                teams={this.props.teams}
+                                stream={this.props.streams[0]}
+                                setStream={this.props.setStream1}
+                                placeholder="Velg stream for lag #1"/>
+                        </div>
 
-                <div className="well">
-                    <TwitchStreamPicker
-                        teams={this.props.teams}
-                        stream={this.props.streams[1]}
-                        setStream={this.props.setStream2}
-                        placeholder="Select stream for team #2"/>
+                        <div className="col-sm-6">
+                            <TwitchStreamPicker
+                                teams={this.props.teams}
+                                stream={this.props.streams[1]}
+                                setStream={this.props.setStream2}
+                                placeholder="Velg stream for lag #2"/>
+                        </div>
+                    </div>
                 </div>
-                {stream2}
-
+                <div className="stream-1">{stream1}</div>
+                <div className="stream-2">{stream2}</div>
                 {this.props.children}
             </div>
         );

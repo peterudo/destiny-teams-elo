@@ -3,7 +3,7 @@ const Promise = require('bluebird');
 const R = require('ramda');
 const fs = require('fs');
 
-module.exports.process = processTeams;
+module.exports.processTeams = processTeams;
 module.exports.getTeamsFromCsv = getTeamsFromCsv;
 module.exports.getTeamsFromCsvFile = getTeamsFromCsvFile;
 
