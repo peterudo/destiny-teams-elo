@@ -100,4 +100,10 @@
     "subs": "magoeia1",
     "twitch": [],
     "players": ["sindre1o1o", "Lightyear_69", "Trynym"]
+}, {
+    "name": "50 Shades Of Media",
+    "contact": "Nikolai Øybakken",
+    "subs": "",
+    "twitch": ["nikolai_n_oybakken"],
+    "players": ["noybakken", "johnfroy", "supermann192"]
 }]
