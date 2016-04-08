@@ -6149,7 +6149,11 @@ body {
 
 .twitch-chat {
   width: 310px;
-  float: right; }
+  float: right;
+  border-left: 1px solid #CCC; }
 
 .twitch-iframe {
   float: left; }
+
+.stream-2 {
+  clear: both; }
