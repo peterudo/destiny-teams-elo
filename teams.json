@@ -26,14 +26,14 @@
     "name": "CrN Dedicated T-baggers ",
     "contact": "Martin Øversveen",
     "subs": "",
-    "twitch": [""],
+    "twitch": null,
     "players": ["Martinover", "SSLaceventura", "Duskadoooo"]
 }, {
     "name": "Joyful",
     "contact": "Emsken",
     "subs": "Mr_kristensen",
-    "twitch": ["Emsken"],
-    "players": ["Emsken", "MezuTheGoat", "Slaaen_15"]
+    "twitch": "Slaaen_15",
+    "players": ["Mr-Kristensen", "MezuTheGoat", "Slaaen_15"]
 }, {
     "name": "Presume",
     "contact": "Sindre Skogsbakken",
@@ -71,7 +71,7 @@
     "twitch": [],
     "players": ["KARTINGGUY360 ", "bendic_j", "vipzzler"]
 }, {
-    "name": "Lethal VibeZ",
+    "name": "Ninth",
     "contact": "Jonathan Stovik",
     "subs": "Patsoder",
     "twitch": ["stianolp1337"],
@@ -106,4 +106,10 @@
     "subs": "",
     "twitch": ["nikolai_n_oybakken"],
     "players": ["noybakken", "johnfroy", "supermann192"]
+}, {
+    "name": "GuaRdiAns 0f KiLLiNG",
+    "contact": "Christer Stana",
+    "subs": "maaalios",
+    "twitch": ["teknicon"],
+    "players": ["Teknicon", "Mitzral", "Boen1985"]
 }]
