@@ -11,10 +11,11 @@ var modes = [
 elo.processTeams(getTeams(), modes).then(printTeams);
 
 function printTeams(teams) {
-    teams = teams.sort((a, b) => b.avgElo - a.avgElo);
+    console.log('Data for', modes.join(', '), ':');
+    console.log(JSON.stringify(teams, null, 4));
 
     teams.forEach((team, i) => {
-        console.log(`${i + 1}. ${team.name} (${team.avgElo} elo) - ${team.players.join(', ')}`);
+        console.log(`${i + 1}. ${team.name} (${team.elo} elo, ${team.kd} k/d) - ${Object.keys(team.players).join(', ')}`);
     });
 }
 
