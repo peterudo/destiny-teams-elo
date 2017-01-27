@@ -1,11 +1,23 @@
 const request = require('request-prom');
 const Promise = require('bluebird');
-const R = require('ramda');
 const fs = require('fs');
+const config = require('./config.json');
 
 module.exports.processTeams = processTeams;
-module.exports.getTeamsFromCsv = getTeamsFromCsv;
-module.exports.getTeamsFromCsvFile = getTeamsFromCsvFile;
+
+const bungieModeNames = {
+    skirmish: 'threeVsThree',
+    control: 'control',
+    salvage: 'lockdown',
+    clash: 'team',
+    rumble: 'freeForAll',
+    too: 'trialsOfOsiris',
+    doubles: 'doubles',
+    ironBanner: 'ironBanner',
+    elimination: 'elimination',
+    rift: 'rift',
+    zoneControl: 'zoneControl'
+}
 
 const MODES = {
     skirmish: 9,
@@ -18,91 +30,166 @@ const MODES = {
     ironbanner: 19,
     elimination: 23,
     rift: 24,
-    zonecontrol: 28,
-    srl: 29,
-    crimsondoubles: 523
+    zonecontrol: 28
 };
 
-const curried = {
-    getAndAddPlayerToTeam: R.curry(getAndAddPlayerToTeam),
-    addPlayerToTeam: R.curry(addPlayerToTeam),
-    getCompleteTeamData: R.curry(getCompleteTeamData)
-}
+const playerIds = {};
 
 function processTeams(teams, modes) {
-    return Promise.map(teams, curried.getCompleteTeamData(modes));
+    return Promise
+        .map(teams, (team) => getCompleteTeamData(modes, team))
+        .then((teams) => {
+            return teams.sort((a, b) => b.elo - a.elo);
+        });
 }
 
 function getCompleteTeamData(modes, team) {
-    var teamData = {
+    const players = {};
+
+    team.players.forEach((player) => {
+        players[player] = {
+            kd: [],
+            elo: [],
+            gamesPlayed: []
+        };
+    });
+
+    const teamData = {
         name: team.name,
-        players: team.players,
-        elo: [],
-        gamesPlayed: []
+        players,
+        kd: [],
+        elo: []
     };
 
-    return Promise.reduce(team.players, curried.getAndAddPlayerToTeam(modes), teamData).then(calculateFinalTeamData)
+    return Promise
+        .map(team.players, (player) => getAndAddPlayerToTeam(modes, teamData, player))
+        .then(() => teamData)
+        .then(calculateFinalTeamData);
 }
 
 function getAndAddPlayerToTeam(modes, teamData, playerName) {
     return getPlayerId(playerName)
-        .then(curried.addPlayerToTeam(modes, teamData))
+        .then((playerId) => {
+            playerIds[playerId] = playerName;
+
+            return addPlayerToTeam(modes, teamData, playerId)
+        })
         .catch((error) => {
             console.error('Error', error);
         });
 }
 
 function addPlayerToTeam(modes, teamData, playerId) {
-    return Promise.reduce(modes, (teamData, modeKey) => {
-        return addPlayerToTeamForMode(teamData, playerId, MODES[modeKey]);
-    }, teamData);
+    const elo = Promise
+        .map(modes, (modeKey) => {
+            return addPlayerEloToTeam(teamData, playerId, MODES[modeKey]);
+        });
+
+    const kd = getCharacters(playerId)
+        .then((characterIds) => {
+            return Promise.map(characterIds, (characterId) => {
+                return getCharacterKd(playerId, characterId, modes);
+            });
+        })
+        .then((characterKds) => {
+            characterKds = characterKds[0];
+
+            Object.keys(characterKds).forEach((gameMode) => {
+                if (!characterKds[gameMode].allTime) {
+                    return;
+                }
+
+                const allTimeKd = characterKds[gameMode].allTime.killsDeathsRatio.basic.value
+
+                teamData.players[playerIds[playerId]].kd.push(allTimeKd);
+                teamData.kd.push(allTimeKd);
+            });
+
+        });
+
+    return Promise.all([elo, kd]);
 }
 
-function addPlayerToTeamForMode(teamData, playerId, mode) {
+function addPlayerEloToTeam(teamData, playerId, mode) {
     return getPlayerModeDataForPlayer(playerId, mode)
         .then((playerData) => {
             // No player data, the player has never played the mode
             if (playerData) {
-                teamData.gamesPlayed.push(playerData.gamesPlayed || 0);
+                const player = teamData.players[playerIds[playerId]];
+
                 teamData.elo.push(playerData.elo);
+                player.elo.push(playerData.elo);
+                player.gamesPlayed.push(playerData.gamesPlayed || 0);
             }
 
             return teamData;
         });
 }
 
-function calculateFinalTeamData(finalTeamData) {
+function calculateFinalTeamData(teamData) {
     var sum = (total, value) => total + value;
 
-    finalTeamData.totalGamesPlayed = finalTeamData.gamesPlayed.reduce(sum);
-    finalTeamData.totalElo = finalTeamData.elo.reduce(sum);
+    const totalElo = teamData.elo.reduce(sum);
+    const totalKd = teamData.kd.reduce(sum);
 
-    finalTeamData.avgGamesPlayed = Math.round(finalTeamData.totalGamesPlayed / finalTeamData.gamesPlayed.length);
-    finalTeamData.avgElo = Math.round(finalTeamData.totalElo / finalTeamData.elo.length);
+    teamData.elo = Math.round(totalElo / teamData.elo.length);
+    teamData.kd = Math.round((totalKd / teamData.kd.length) * 100) / 100;
 
+    Object.keys(teamData.players).forEach((playerName) => {
+        const player = teamData.players[playerName];
+
+        if (player.kd.length) {
+            player.kd = Math.round((player.kd.reduce(sum) / player.kd.length) * 100) / 100;
+        }
+
+        if (player.elo.length) {
+            player.elo = Math.round(player.elo.reduce(sum) / player.elo.length);
+        }
+
+        player.gamesPlayed = player.gamesPlayed.reduce(sum);
+    });
+
+/*
     console.log('Team', finalTeamData.name);
     console.log('Players', finalTeamData.players);
     console.log('Avg elo', finalTeamData.avgElo);
+    console.log('Avg KD', finalTeamData.avgKd);
     console.log('Avggames played', finalTeamData.avgGamesPlayed);
-    console.log('-------------');
+    console.log('-------------');*/
 
-    return finalTeamData;
+    return teamData;
 }
 
 function getPlayerId(name) {
-    var options = {
-        url: 'http://proxy.guardian.gg/Platform/Destiny/SearchDestinyPlayer/2/' + name,
-        method: 'GET',
-        json: true
-    };
+    const url = 'https://www.bungie.net/Platform/Destiny/SearchDestinyPlayer/2/' + name;
 
-    return request(options).then((response) => {
-        if (!response.body.Response.length) {
-            throw new Error('Failed to find player ' + name);
-        }
+    return bungieRequest(url)
+        .then((response) => {
+            if (!response.length) {
+                throw new Error('Failed to find player ' + name);
+            }
 
-        return response.body.Response[0].membershipId;
-    });
+            return response[0].membershipId;
+        });
+}
+
+function getCharacters(playerId) {
+    const url = 'https://www.bungie.net/Platform/Destiny/2/Account/' + playerId + '/?lc=en';
+
+    return bungieRequest(url)
+        .then((response) => {
+            return response.data.characters.map((char) => char.characterBase.characterId);
+        })
+}
+
+function getCharacterKd(playerId, characterId, modes) {
+    modes = modes
+        .map((modeKey) => MODES[modeKey])
+        .join(',');
+
+    const url = `https://www.bungie.net/Platform/Destiny/Stats/2/${playerId}/${characterId}/?modes=${modes}&lc=en`;
+
+    return bungieRequest(url);
 }
 
 function getPlayerModeDataForPlayer(playerId, mode) {
@@ -112,49 +199,22 @@ function getPlayerModeDataForPlayer(playerId, mode) {
         json: true
     };
 
-    return request(options).then((response) => {
-        return response.body.find((elo) => elo.mode === mode);
-    });
-}
-
-function getTeamsFromCsv(csv) {
-    var lines = csv.split(/\"\n/);
-
-    var keys = [false, 'name', 'contact', 'player1', 'player2', 'player3', 'subs', 'twitch'];
-
-    var data = [];
-
-    lines.forEach((line, i) => {
-        if (i === 0) {
-            return;
-        }
-
-        i = i - 1;
-
-        line = line.substr(1, line.length);
-        var values = line.split('","');
-
-        data[i] = {};
-        keys.forEach((key, j) => {
-            if (key) {
-                data[i][key] = values[j].replace('"', '');
-            }
+    return request(options)
+        .then((response) => {
+            return response.body.find((elo) => elo.mode === mode);
         });
-
-        data[i].players = [
-            data[i].player1,
-            data[i].player2,
-            data[i].player3
-        ];
-
-        delete data[i].player1;
-        delete data[i].player2;
-        delete data[i].player3;
-    });
-
-    return data;
 }
 
-function getTeamsFromCsvFile(file) {
-    return getTeamsFromCsv(fs.readFileSync(file).toString());
+function bungieRequest(url) {
+    var options = {
+        url,
+        method: 'GET',
+        headers: {
+            'X-API-KEY': config.bungieApiKey
+        },
+        json: true
+    };
+
+    return request(options)
+        .then((response) => response.body.Response);
 }

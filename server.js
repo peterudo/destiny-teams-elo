@@ -6,31 +6,11 @@ const elo = require('./elo');
 const server = new Hapi.Server();
 server.connection({port: process.env.PORT || 3000});
 
-server.register(require('inert'), (err) => {
-    if (err) {
-        throw err;
-    }
-
-    server.route({
-        method: 'GET',
-        path: '/{param*}',
-        handler: {
-            directory: {
-                path: 'web'
-            }
-        }
-    });
-});
-
 server.route({
-    method: 'GET',
-    path: '/teams.json',
+    method: 'POST',
+    path: '/seed',
     handler: function (request, reply) {
-        const teams = require('./teams.json');
-
-        if (!request.query.seed) {
-            return reply(teams);
-        }
+        const payload = request.payload;
 
         const modes = [
             'skirmish',
@@ -39,7 +19,9 @@ server.route({
             'too'
         ];
 
-        elo.processTeams(teams, modes).then(reply);
+        elo
+            .processTeams(payload.teams, payload.modes || modes)
+            .then(reply);
     }
 });
 
